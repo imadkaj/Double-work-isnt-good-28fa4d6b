@@ -18,92 +18,48 @@ catch (\PDOException $e)
 }
 
 
-session_start();
 
-if(!isset($_SESSION['serieswitch']))
-{
-    $_SESSION['serieswitch'] = true;
-}
-
-if(!isset($_SESSION['filmswitch']))
-{
-    $_SESSION['filmswitch'] = true;
-}
-
-$serie_order = 'title';
-$film_order = 'title';
-
-
-if(isset($_GET['serie_order']))
-{
-    $serie_order = $_GET['serie_order'];
-}
-
-if(isset($_GET['film_order']))
-{
-    $film_order = $_GET['film_order'];
-}
-
-if(isset($_GET['serie_switch']))
-{
-    $_SESSION['serieswitch'] = !$_SESSION['serieswitch'];
-}
-
-if(isset($_GET['film_switch']))
-{
-    $_SESSION['filmswitch'] = !$_SESSION['filmswitch'];
-}
-
-
-function getASC_or_DESC($switch)
-{
-    if($switch)
-    {
-        return 'ASC';
-    }
-
-    return 'DESC';
-}
-
-
-$stmt = $pdo->prepare("SELECT * FROM series ORDER BY $serie_order " . getASC_or_DESC($_SESSION['serieswitch']));
+$sql = "SELECT * FROM media";
+$stmt = $pdo->prepare($sql);
 $stmt->execute();
 
-$stmt2 = $pdo->prepare("SELECT * FROM movies ORDER BY $film_order " . getASC_or_DESC($_SESSION['filmswitch']));
-$stmt2->execute();
+$media = $stmt->fetchAll(PDO::FETCH_OBJ);
 
-$series_array = $stmt->fetchAll(PDO::FETCH_OBJ);
-$movies_array = $stmt2->fetchAll(PDO::FETCH_OBJ);
-
-
-function echoSeries()
+function displaySeries($key)
 {
-    global $series_array;
-    foreach ($series_array as $key) 
+    echo 
+    '<tr>' .
+        '<td>' . $key->title . '</td>' .
+        '<td>' . $key->rating . '</td>' .
+        '<td>' . "<a href='details.php?id=$key->id'>details</a>" . '</td>' .
+    '</tr>';
+}
+
+function displayFilms($key)
+{
+    echo 
+    '<tr>' .
+        '<td>' . $key->title . '</td>' .
+        '<td>' . $key->duration . '</td>' .
+        '<td>' . "<a href='details.php?id=$key->id'>details</a>" . '</td>' .
+    '</tr>';
+}
+
+
+
+function display($type,$callback)
+{
+    global $media;
+    foreach ($media as $key) 
     {
-        echo 
-        '<tr>' .
-            '<td>' . $key->title . '</td>' .
-            '<td>' . $key->rating . '</td>' .
-            '<td>' . "<a href='series.php?id=$key->id'>details</a>" . '</td>' .
-        '</tr>';
+        if($key->type == $type)
+        {
+            $callback($key);
+        }
     }
 }
 
 
-function echoMovies()
-{
-    global $movies_array;
-    foreach ($movies_array as $key) 
-    {
-        echo 
-        '<tr>' .
-            '<td>' . $key->title . '</td>' .
-            '<td>' . $key->duur . '</td>' .
-            '<td>' . "<a href='films.php?id=$key->volgnummer'>details</a>" . '</td>' .
-        '</tr>';
-    }
-}
 
 
 
@@ -111,31 +67,41 @@ function echoMovies()
 <table>
 <h3>Series</h3>
 <tr>
-<th><a href=<?php echo "index.php?serie_order=title&serie_switch=" . $_SESSION['serieswitch']; ?>>Titel</a></th>
-<th><a href=<?php echo "index.php?serie_order=rating&serie_switch=" . $_SESSION['serieswitch']; ?>>Rating</a></th>
+<th>Title</th>
+<th>Rating</th>
 </tr>
 <tr>
-<?php echoSeries($stmt); ?>
+<?php display('serie', 'displaySeries'); ?>
 </tr>
 </table>
 
 <br>
 
-<a href="series_create.php"><button>Add serie</button></a>
+<form action="create.php" method="get">
+<input type="hidden" name="type" value="serie">
+<input type="submit" name="submit" value="Add serie">
+</form>
 
 <br>
 
 <table>
 <h3>Films</h3>
 <tr>
-<th><a href=<?php echo "index.php?film_order=title&film_switch=" . $_SESSION['filmswitch']; ?>>Titel</a></th>
-<th><a href=<?php echo "index.php?film_order=duur&film_switch=" . $_SESSION['filmswitch']; ?>>Duur</a></th>
+<th>Title</th>
+<th>Duur</th>
 </tr>
 <tr>
-<?php echoMovies($stmt2); ?>
+<?php display('film', 'displayFilms'); ?>
 </tr>
 </table>
 
 <br>
 
-<a href="films_create.php"><button>Add film</button></a>
+<form action="create.php" method="get">
+<input type="hidden" name="type" value="film">
+<input type="submit" name="submit" value="Add film">
+</form>
+
+
+
+
